@@ -1,24 +1,34 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def unit(vector):
+    return vector / np.linalg.norm(vector)
+
+def rotate(vector, axis, theta):
+    dot = np.dot(vector, axis)
+    cross = np.cross(vector, axis)
+    return vector*np.cos(theta) + axis*dot*(1-np.cos(theta)) + cross*np.sin(theta)
+
+def get_perp(vector):
+    return unit(np.cross(np.array([1, 0, 0]), vector))
+
 class Screen():
-    def __init__(self, size, distance, light=np.array([0, -1, 0])):
+    def __init__(self, size, camera_dist):
         self.size = size
-        self.distance = distance
-        self.light = normalize(light)
+        self.camera_dist = camera_dist
         self.screen = np.zeros(self.size)
+        self.center = [int(self.size[i] / 2) for i in (0, 1)]
         self.z_buffer = np.full(self.size, np.inf) # stores z-coordinates for plotted points
-        self.origin = [int(self.size[i] / 2) for i in (0, 1)]
 
     def project(self, coords):
         for point in coords:
-            brightness = -np.dot(self.light, normalize(point))
-            scale = self.distance / point[2]
-            pos = [int(point[i] * scale) + self.origin[i] for i in (1, 0)] # axes need to be swapped for plotting
+            point_z, point_b = point[2], point[3]
+            pos = [int(point[i] * self.camera_dist / point_z) + self.center[i] for i in (1, 0)]
+            # axes need to be swapped for plotting
 
-            if point[2] < self.z_buffer[*pos]:
-                self.screen.itemset(*pos, brightness) # minus because the z-axis is reversed
-                self.z_buffer.itemset(*pos, point[2])
+            if point_z < self.z_buffer[*pos]:
+                self.screen.itemset(*pos, point_b)
+                self.z_buffer.itemset(*pos, point_z)
 
     def show(self):
         plt.imshow(self.screen, origin='lower')
@@ -36,9 +46,6 @@ def rot(axis, t, vector):
         return None
 
     return np.matmul(matrix, vector)
-
-def normalize(vector):
-    return vector / np.linalg.norm(vector)
 
 screen = Screen((500, 500), 200)
 
@@ -78,15 +85,39 @@ screen = Screen((500, 500), 200)
 #         shape.append(np.matmul(rot_y, vector) + [0, dy, 0] + offset)
 
 # torus
+# shape = []
+# radius = np.array([50, 0, 0])
+# offset = np.array([0, 0, 250])
+# for a in np.linspace(0, 2*np.pi, 100):
+#     for b in np.linspace(0, 2*np.pi, 100):
+#         v = rot('z', a, radius)
+#         v = rot('y', b, v + [100, 0, 0])
+#         v = rot('x', -np.pi/4, v)
+#         shape.append(v + offset)
+
+def transform(vector):
+    return rot('x', -np.pi/4, vector)
+
+R_val = 100
+r_val = 50
+
+offset = np.array([0, 0, 250])
+light=np.array([0, -1, 0])
 shape = []
-radius = np.array([50, 0, 0])
-offset = np.array([0, 0, 300])
+
+R0 = np.array([R_val, 0, 0])
+r0 = np.array([0, r_val, 0])
+
 for a in np.linspace(0, 2*np.pi, 500):
+    r = rot('z', a, r0)
+
     for b in np.linspace(0, 2*np.pi, 500):
-        v = rot('z', a, radius)
-        v = rot('y', b, v + [100, 0, 0])
-        v = rot('x', -np.pi/4, v)
-        shape.append(v + offset)
+        v = rot('y', b, r + R0)
+        Tr = transform(rot('y', b, r))
+        brightness = - np.dot(unit(light), unit(Tr))
+        Tv = transform(v) + offset
+        Tv = np.append(Tv, brightness)
+        shape.append(Tv)
 
 screen.project(shape)
 screen.show()
