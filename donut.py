@@ -42,8 +42,9 @@ class Screen():
                 else: # projection beyond the screen
                     pos = []
                     break
-                
-            if pos and point[2] < self.z_buffer[*pos]: # closer than the previous object mapping to this pixel
+
+            if pos and point[2] < self.z_buffer[*pos]:
+                # closer than the previous object mapping to this pixel
                 self.screen.itemset(*pos, point[3])
                 self.z_buffer.itemset(*pos, point[2])
 
@@ -65,7 +66,7 @@ class Screen():
             print('')
         print('\x1b[H') # ANSI terminal screen flush
 
-    def animate(self, body, frames, fps, n_rotations=[0.5, 1, 1.5]):
+    def animate(self, body, frames, fps, n_rotations=(0.5, 1, 1.5)):
         for f in range(frames):
             print(f'{f} / {frames}')
             self.clear()
@@ -78,7 +79,8 @@ class Screen():
 
 
 class Torus():
-    def __init__(self, rotation=[0, 0, 0], position=[0, 0, 250], R_val=50, r_val=20, light=[0, -1, 0]):
+    def __init__(self, rotation=(0, 0, 0), position=(0, 0, 250),
+    R_val=50, r_val=20, light=(0, -1, 0)):
         self.rotation = np.array(rotation)
         self.position = np.array(position)
         self.R0 = np.array([R_val, 0, 0])
@@ -92,15 +94,17 @@ class Torus():
 
             for b in np.linspace(0, 2*np.pi, 256):
                 v = rot('y', b, r + self.R0) # move circle from the rotation axis by R0 and rotate
-                Tr = self.transform(rot('y', b, r)) # rotate and transform the circle drawing vector (surface normal)
+                Tr = self.transform(rot('y', b, r))
+                # rotate and transform the circle drawing vector (surface normal)
                 brightness = - np.dot(unit(self.light), unit(Tr)) # calculate lighting
 
-                Tv = self.transform(v) + self.position # transform and move the entire torus away from the screen
+                Tv = self.transform(v) + self.position
+                # transform and move the entire torus away from the screen
                 Tv = np.append(Tv, brightness)
                 points.append(Tv)
 
         return points
-    
+
     def transform(self, vector):
         for axis in range(3):
             angle = self.rotation[axis]
